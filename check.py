@@ -4,9 +4,6 @@ import argparse
 import time
 from datetime import datetime
 
-hash_souboru = ""
-pathspec = ""
-
 # vytvoření prázdného .check souboru
 def init():
     print("Inicializace sledování...")
@@ -21,20 +18,39 @@ def init():
 def vypocti_sha1(pathspec):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     sha1_hash = hashlib.sha1()
+    hash_souboru = ""
+
+    # vypočítání hashe
     with open(pathspec, "rb") as f:
         for bajtovy_blok in iter(lambda: f.read(4096), b""):
             sha1_hash.update(bajtovy_blok)
-            hash_souboru = sha1_hash.hexdigest()
-            print(f"SHA-1 hash souboru: {hash_souboru}")
-    with open('hash.check', 'w') as file: # Vytvoří/přepíše soubor hash.check
-        file.write(f"{hash_souboru} {pathspec} {timestamp}") # Co napíše do souboru hash.check
 
+        hash_souboru = sha1_hash.hexdigest()
+        print(f"SHA-1 hash souboru: {hash_souboru}")
+
+    with open('hash.check', 'r') as file:
+            content = file.readlines()
+            if not any(hash_souboru in line for line in content): # V případě, že hash v .check souboru ještě není, napíše ho na nový řádek
+                with open('hash.check', 'a') as f:
+                    f.write(f"{hash_souboru} {pathspec} {timestamp}\n") # Co napíše do souboru hash.check
+        
 def add_soubor(pathspec):
     print("Přidávání souboru...")
     for i in range(5):
         print(i + 1)
         time.sleep(1)
-    vypocti_sha1(pathspec)
+
+    matched_files = glob.glob(pathspec)
+
+    if not matched_files:
+        print(f"Nebyly nalezeny žádné soubory odpovídající vzoru: {pathspec}")
+        return
+    
+    print(f"Bylo nalezeno {len(matched_files)} souborů")
+    for file in matched_files:
+        print(f"Prídávání souboru {file}")
+        vypocti_sha1(file)
+    
     print("Přidávání dokončeno")
 
 def remove_soubor(pathspec):
@@ -42,11 +58,13 @@ def remove_soubor(pathspec):
     for i in range(5):
         print(i + 1)
         time.sleep(1)
-    with open('hash.check', 'w+') as file: # Otevře soubor hash.check
-        content = file.readline() # přečte řádek (asi, idk co přesně dělá .readline)
-        if (content.__contains__(pathspec)):
-            content = ""
-            file.remove(file.readline())
+    with open('hash.check', 'w+') as file:
+        matched_files = glob.glob(pathspec)
+        content = file.readline()
+        for f in matched_files:
+            if content == f:
+                content = ""
+                file.remove(file.readline())
     print("Odstraňování dokončeno")
 
 def status_souboru():
@@ -100,6 +118,7 @@ def show_help():
 
     parser.print_help()
 
+# volání funkce pro určitý příkaz
 def check_input(command, pathspec):
     try:
         match command:
@@ -126,11 +145,21 @@ def main ():
     while True:
         user_input = input("Zadejte příkaz: ").strip()
         
+        # V případě, že cesta k souboru obsahuje mezery, tak se cesta nerozdělí, protože je vždy zadávána jako 3. část
         input_parts = user_input.split(maxsplit=2)
 
+        #Pokud uživatel nezadná určitou část příkazu, nastaví se na prázdný string
         checkpy = input_parts[0].lower() if len(input_parts) > 0 else ""
-        command = input_parts[1].lower() if len(input_parts) > 1 else ""
-        pathspec = input_parts[2].lower() if len(input_parts) > 2 else ""
+
+        if len(input_parts) > 1:
+            command = input_parts[1].lower()
+        else:
+            command = ""
+
+        if len(input_parts) > 2:
+            pathspec = input_parts[2].lower()
+        else:
+            pathspec = ""
 
         if checkpy == "check.py":
             check_input(command, pathspec)
