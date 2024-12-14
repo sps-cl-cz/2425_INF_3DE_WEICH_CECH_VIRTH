@@ -1,7 +1,9 @@
 # 2425_INF_3DE_WEICH_CECH_VIRTH
 
-Nedostatky:
+Zahájení sledování:
+check.py init
 
-Aplikace nekomunikuje s uživatelem
-Neexistuje příkaz na zobrazení nápovědy (check.py -h)
-Neexistuje příkaz status 
+Další příkazy lze najít v nápovědě pomocí příkazu check.py -h
+
+Známé nedostatky:
+N/A

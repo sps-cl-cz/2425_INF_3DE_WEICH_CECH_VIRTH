@@ -1,77 +1,69 @@
-# Při kontrole zapisování potřeba zakomentovat řádek 41
-# Při kontrole mazání potřeba NEMÍT zakomentovaný řádek 41
-# Řádek 14 otevře .check soubor a pracuje se s ním jako s "file"
-#    Lze změnit z "w" na "w+" pro zápis i čtení
-
 import hashlib
 import glob
 import argparse 
+import time
 from datetime import datetime
 
 hash_souboru = ""
-pathspec = r"README.md" # statická pathspec určena pro testování, poté bude prázdný
+pathspec = ""
 
 # vytvoření prázdného .check souboru
 def init():
-    with open('test.check', 'w') as file:
+    print("Inicializace sledování...")
+    for i in range(5):
+        print(i + 1)
+        time.sleep(1)
+    with open('hash.check', 'w') as file:
         file.write("")
-
-init()
+    print("Inicializace dokončena")
 
 # vypočítání hashe
 def vypocti_sha1(pathspec):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     sha1_hash = hashlib.sha1()
     with open(pathspec, "rb") as f:
         for bajtovy_blok in iter(lambda: f.read(4096), b""):
             sha1_hash.update(bajtovy_blok)
             hash_souboru = sha1_hash.hexdigest()
             print(f"SHA-1 hash souboru: {hash_souboru}")
-    with open('test.check', 'w') as file: # Vytvoří/přepíše soubor test.check
-        file.write(hash_souboru + " " + pathspec) # Co napíše do souboru test.check
-        
-vypocti_sha1(pathspec)
+    with open('hash.check', 'w') as file: # Vytvoří/přepíše soubor hash.check
+        file.write(f"{hash_souboru} {pathspec} {timestamp}") # Co napíše do souboru hash.check
 
-def pridat_soubor(pathspec):
-    # user zadá cestu souboru
+def add_soubor(pathspec):
+    print("Přidávání souboru...")
+    for i in range(5):
+        print(i + 1)
+        time.sleep(1)
     vypocti_sha1(pathspec)
+    print("Přidávání dokončeno")
 
 def remove_soubor(pathspec):
-    with open('test.check', 'w') as file: # Otevře soubor test.check
+    print("Odstraňování souboru...")
+    for i in range(5):
+        print(i + 1)
+        time.sleep(1)
+    with open('hash.check', 'w+') as file: # Otevře soubor hash.check
         content = file.readline() # přečte řádek (asi, idk co přesně dělá .readline)
         if (content.__contains__(pathspec)):
             content = ""
             file.remove(file.readline())
-
-remove_soubor("README.md")
-
-def main ():
-     # Nějaký pokus o automatické zobrazení nápovědy
-     # Funguje polovičně
-     parser = argparse.ArgumentParser(description='Sledování změn v souborech', usage="%(prog)s [options]")
-
-     subparsers = parser.add_subparsers()
-     
-     parser.add_argument('-init', help="Inicializování sledování")
-     add_parser = subparsers.add_parser('add', help="přidá/aktualizuje soubory ke sledování")
-     add_parser.add_argument('pathspec', help="Cesta k souboru nebo vzor pro soubory (např. *.txt)")
-     parser.add_argument('remove', help="odebere soubory ke sledování")
-     parser.add_argument('status', help="Zobrazí stav sledovaných souborů")
-     status_parser = subparsers.add_parser('status', help="Zobrazí stav sledovaných souborů")
-     status_parser.set_defaults(func=status_souboru)
-
-     parser.print_help()
+    print("Odstraňování dokončeno")
 
 def status_souboru():
+    print("Kotrolování souborů...")
+    for i in range(5):
+        print(i + 1)
+        time.sleep(1)
     # Zobrazí stav sledovaných souborů.
     try:
-        with open('test.check', 'r') as file:
+        with open('hash.check', 'r') as file:
             content = file.readlines()
             if content:
                 ok_count = 0
                 change_count = 0
                 error_count = 0
                 for line in content:
-                    sha1_hash, path = line.strip().split(" ", 1)
+                    sha1_hash, path, timestamp = line.strip().split(" ", 2)
                     try:
                         # Zkontroluje jestli soubor existuje
                         with open(path, 'rb') as f:
@@ -92,9 +84,58 @@ def status_souboru():
             else:
                 print("Žádné soubory nejsou sledovány.")
     except FileNotFoundError:
-        print("Soubor 'test.check' nebyl nalezen. Ujistěte se, že byl inicializován.")
+        print("Soubor 'hash.check' nebyl nalezen. Ujistěte se, že byl inicializován.")
 
-status_souboru()
+def show_help():
+    parser = argparse.ArgumentParser(usage="check.py <příkaz>")
+
+    subparsers = parser.add_subparsers(title = None, metavar = "Dostupné příkazy:")
+
+    init_parser = subparsers.add_parser("check.py init", help = "Inicializuje sledování", usage = "check.py init")
+    add_parser = subparsers.add_parser("add <pathspec>", help = "přidá soubor ke sledování", usage = "check.py add <pathspec>")
+    add_parser.add_argument("pathspec", help = "Cesta k souboru nebo vzor pro soubor (např. *.txt)")
+    remove_parser = subparsers.add_parser("check.py remove <pathspec>", help = "Odebere soubor ze sledování", usage = "check.py remove <pathspec>")
+    status_parser = subparsers.add_parser("check.py status", help = "zobrazí stav sledovaných souborů", usage = "check.py status")
+    exit_parser = subparsers.add_parser("check.py exit", help = "Ukončí program", usage = "check.py exit")
+
+    parser.print_help()
+
+def check_input(command, pathspec):
+    try:
+        match command:
+            case "init":
+                init()
+            case "add":
+                add_soubor(pathspec)
+            case "remove":
+                remove_soubor(pathspec)
+            case "status":
+                status_souboru()
+            case "-h":
+                show_help()
+            case "exit":
+                exit()
+            case _:
+                print("Invalid command. Use 'check.py -h' to show help")
+    except Exception as e:
+        print(e)
+
+
+def main ():
+
+    while True:
+        user_input = input("Zadejte příkaz: ").strip()
+        
+        input_parts = user_input.split(maxsplit=2)
+
+        checkpy = input_parts[0].lower() if len(input_parts) > 0 else ""
+        command = input_parts[1].lower() if len(input_parts) > 1 else ""
+        pathspec = input_parts[2].lower() if len(input_parts) > 2 else ""
+
+        if checkpy == "check.py":
+            check_input(command, pathspec)
+        else:
+            print("Invalid prefix. Use 'check.py -h' to show help")
 
 if __name__ == "__main__":
     main()
